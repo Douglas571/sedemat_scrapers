@@ -134,6 +134,8 @@ def procesar_excel_y_exportar_excel(archivo_excel, archivo_salida):
 
         if not datos_del_pago_primera_fila:
             print('value not found for: ', hoja.title)
+
+        isExonerated = hoja['B17'].value == 'EXONERADO'
         
         if datos_del_pago_primera_fila:
             # Obtener los datos del pago
@@ -168,6 +170,13 @@ def procesar_excel_y_exportar_excel(archivo_excel, archivo_salida):
                 comprobante['referencia'] = referencia
                 comprobante['verificado_por'] = verificado_por
                 comprobante['es_cedula'] = es_cedula
+
+                if isExonerated: 
+                    comprobante['banco'] = 'EXONERADO'
+                    comprobante['cuenta'] = 'EXONERADO'
+                    comprobante['fecha_pago'] = 'EXONERADO'
+                    comprobante['referencia'] = 'EXONERADO'
+
             
                 liquidaciones.append(comprobante)
 
