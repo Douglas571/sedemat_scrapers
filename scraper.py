@@ -110,9 +110,17 @@ def procesar_excel_y_exportar_excel(archivo_excel, archivo_salida):
         # pago_por = (hoja['C14'].value or '')[12:].strip()
 
         pago_por = (hoja['A21'].value or '').split("-")[1].strip()
-        pago_por.replace("PAGO POR :", "")
+        
+        
+        # Identify if the settlmeent if for economic licence mantainance 
+        description = hoja['C14'].value or ''
 
-       
+        # Check if the description includes "patente", "industria", and "comercio"
+        if all(keyword in description.lower() for keyword in ["patente", "industria", "comercio"]):
+            if 'mantenimiento' in description.lower():
+                pago_por = 'MANTENIMIENTO DE PATENTE DE INDUSTRIA Y COMERCIO'
+            elif ('inscripción' in description.lower()) or ('inscripcion' in description.lower()):
+                pago_por = 'INSCRIPCION DE PATENTE DE INDUSTRIA Y COMERCIO'
 
         monto = encontrar_monto(hoja)
         
