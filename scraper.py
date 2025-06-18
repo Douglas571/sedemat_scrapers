@@ -1,3 +1,4 @@
+import sys
 import openpyxl
 import re
 from datetime import datetime
@@ -250,6 +251,11 @@ def procesar_excel_y_exportar_excel(archivo_excel, archivo_salida):
     nuevo_libro.save(archivo_salida)
 
 # Ejemplo de uso
-archivo_entrada = 'june_2025.xlsm'
-archivo_salida = 'liquidaciones_june_2025.xlsx'
-procesar_excel_y_exportar_excel(archivo_entrada, archivo_salida)
+if __name__ == "__main__":
+    if len(sys.argv) < 3:
+        print("Uso: python3 scraper.py <input_file> <output_file.xlsx>")
+        sys.exit(1)
+
+    archivo_entrada = sys.argv[1]
+    archivo_salida = sys.argv[2]
+    procesar_excel_y_exportar_excel(archivo_entrada, archivo_salida)
