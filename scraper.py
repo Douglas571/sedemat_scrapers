@@ -204,22 +204,42 @@ def procesar_excel_y_exportar_excel(archivo_excel, archivo_salida):
 
         
         # scrap "impuestos sobre la propiedad inmobiliaria"
-        if description and "IMPUESTO" in description and "PROPIEDAD" in description and "INMOBILIARIA" in description:
-            parts = description.split("UBICADA")
+        
+        if 'CATASTRAL' in description:
+
+            parts = []
+
+            if "UBICADA" in description: 
+                parts = description.split("UBICADA")
+
+            if "UBICADO" in description: 
+                parts = description.split("UBICADO")
+            
             if len(parts) > 1:
                 address = parts[1].split("ASIGNADA")[0].strip()
-                # print(num_comprobante,
-                #       '\n    address: ', address,
-                #       #'\n    description: ', description
-                #       )
                 parts = description.split("CATASTRAL")
+
                 if len(parts) > 1:
                     catastral_code = parts[1].split(".")[0].strip()
                     catastral_code = catastral_code.replace('Nº', '').strip()
 
-                    # print('    cod catastral: ', catastral_code)
-
                     i = len(solvencias_inmobiliarias) + 1
+
+                    operation = ''
+
+                    if "IMPUESTO" in description and "PROPIEDAD" in description and "INMOBILIARIA" in description:
+                        operation = 'SOLVENCIA PROPIEDAD INMOBILIARIA'
+
+                    if "ARRENDAMIENTO" in description and "TERRENO" in description:
+                        operation = 'ARRENDAMIENTO DE TERRENOS'
+
+                    if "VENTA" in description and "TERRENO" in description:
+                        operation = 'VENTA DE TERRENOS'
+
+                    if "ZONIFICACION" in description and "TERRENO" in description:
+                        operation = 'ZONIFICACION DE TERRENOS'
+
+                    
 
                     solvencia = {
                         'n': i,
@@ -227,7 +247,8 @@ def procesar_excel_y_exportar_excel(archivo_excel, archivo_salida):
                         'rif_cedula': rif_cedula,
                         'direccion': address,
                         'codigo_catastral': catastral_code,
-                        'num_comprobante': num_comprobante
+                        'num_comprobante': num_comprobante,
+                        'concepto': operation,
                     }
                     solvencias_inmobiliarias.append(solvencia)
 
@@ -300,7 +321,7 @@ def procesar_excel_y_exportar_excel(archivo_excel, archivo_salida):
     nueva_hoja_solvencias_inmobiliarias = nuevo_libro.create_sheet(title="SolvenciasInmobiliarias")
     
     # Definir los nombres de las columnas para conceptos
-    campos_solvencias_inmobiliarias = ['n', 'razon_social', 'rif_cedula', 'codigo_catastral', 'direccion', 'num_comprobante']
+    campos_solvencias_inmobiliarias = ['n', 'razon_social', 'rif_cedula', 'codigo_catastral', 'direccion', 'num_comprobante', 'concepto']
     
     # Escribir la cabecera de solvencias inmobiliarias
     for col_num, campo in enumerate(campos_solvencias_inmobiliarias, start=1):
