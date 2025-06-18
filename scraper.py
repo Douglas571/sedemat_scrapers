@@ -84,6 +84,7 @@ def procesar_excel_y_exportar_excel(archivo_excel, archivo_salida):
     
     # Lista para almacenar las liquidaciones
     liquidaciones = []
+    solvencias_inmobiliarias = []
     
     # Lista para almacenar los conceptos
     conceptos = []
@@ -136,6 +137,8 @@ def procesar_excel_y_exportar_excel(archivo_excel, archivo_salida):
             print('value not found for: ', hoja.title)
 
         isExonerated = hoja['B17'].value == 'EXONERADO'
+
+
         
         if datos_del_pago_primera_fila:
             # Obtener los datos del pago
@@ -176,7 +179,6 @@ def procesar_excel_y_exportar_excel(archivo_excel, archivo_salida):
                     comprobante['cuenta'] = 'EXONERADO'
                     comprobante['fecha_pago'] = 'EXONERADO'
                     comprobante['referencia'] = 'EXONERADO'
-
             
                 liquidaciones.append(comprobante)
 
@@ -199,6 +201,35 @@ def procesar_excel_y_exportar_excel(archivo_excel, archivo_salida):
                             'num_comprobante': num_comprobante
                         }
                         conceptos.append(concepto)
+
+        
+        # scrap "impuestos sobre la propiedad inmobiliaria"
+        if description and "IMPUESTO" in description and "PROPIEDAD" in description and "INMOBILIARIA" in description:
+            parts = description.split("UBICADA")
+            if len(parts) > 1:
+                address = parts[1].split("ASIGNADA")[0].strip()
+                # print(num_comprobante,
+                #       '\n    address: ', address,
+                #       #'\n    description: ', description
+                #       )
+                parts = description.split("CATASTRAL")
+                if len(parts) > 1:
+                    catastral_code = parts[1].split(".")[0].strip()
+                    catastral_code = catastral_code.replace('Nº', '').strip()
+
+                    # print('    cod catastral: ', catastral_code)
+
+                    i = len(solvencias_inmobiliarias) + 1
+
+                    solvencia = {
+                        'n': i,
+                        'razon_social': razon_social,
+                        'rif_cedula': rif_cedula,
+                        'direccion': address,
+                        'codigo_catastral': catastral_code,
+                        'num_comprobante': num_comprobante
+                    }
+                    solvencias_inmobiliarias.append(solvencia)
 
     # Crear un nuevo libro para las liquidaciones y conceptos
     nuevo_libro = openpyxl.Workbook()
@@ -263,6 +294,25 @@ def procesar_excel_y_exportar_excel(archivo_excel, archivo_salida):
         showLastColumn=False, showRowStripes=True, showColumnStripes=True)
     tabla_conceptos.tableStyleInfo = estilo_conceptos
     nueva_hoja_conceptos.add_table(tabla_conceptos)
+
+
+    #### Hoja para las solvencias inmobiliarias ###########
+    nueva_hoja_solvencias_inmobiliarias = nuevo_libro.create_sheet(title="SolvenciasInmobiliarias")
+    
+    # Definir los nombres de las columnas para conceptos
+    campos_solvencias_inmobiliarias = ['n', 'razon_social', 'rif_cedula', 'codigo_catastral', 'direccion', 'num_comprobante']
+    
+    # Escribir la cabecera de solvencias inmobiliarias
+    for col_num, campo in enumerate(campos_solvencias_inmobiliarias, start=1):
+        celda = nueva_hoja_solvencias_inmobiliarias.cell(row=1, column=col_num)
+        celda.value = campo
+    
+    # Escribir las filas de solvencias inmobiliarias
+    for fila_num, solvencia in enumerate(solvencias_inmobiliarias, start=2):
+        for col_num, campo in enumerate(campos_solvencias_inmobiliarias, start=1):
+            celda = nueva_hoja_solvencias_inmobiliarias.cell(row=fila_num, column=col_num)
+            celda.value = solvencia[campo]
+
     
     # Guardar el archivo Excel
     nuevo_libro.save(archivo_salida)
