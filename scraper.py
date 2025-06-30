@@ -9,6 +9,8 @@ from datetime import datetime, date
 
 warnings.filterwarnings("ignore", category=UserWarning, module="openpyxl")
 
+isDebugging = False
+
 def extraer_numero_comprobante(texto):
     return texto[-5:].replace("°", "").strip()
 
@@ -156,6 +158,10 @@ def procesar_excel_y_exportar_excel(archivo_excel, archivo_salida):
 
             # Crear el registro del comprobante si se encontró el número de comprobante
             if num_comprobante:
+
+                if isDebugging:
+                    print(num_comprobante)
+
                 comprobante['num_comprobante'] = num_comprobante
                 comprobante['fecha'] = fecha
                 comprobante['razon_social'] = razon_social
@@ -189,9 +195,18 @@ def procesar_excel_y_exportar_excel(archivo_excel, archivo_salida):
                         conceptos_fila_cabecera = fila
                         break
 
+                if isDebugging: 
+                    print(comprobante)
+
                 # Recolectar conceptos para este num_comprobante
                 for fila in range(conceptos_fila_cabecera + 1, 29):  # A21 a A28
                     partida = hoja[f'A{fila}'].value
+
+                    if isDebugging: 
+                        print('partida: ', partida)
+
+                    if partida and 'DATOS' in partida: break
+
                     if partida:
                         monto_concepto = hoja[f'H{fila}'].value
                         concepto = {
