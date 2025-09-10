@@ -79,7 +79,7 @@ df_1892 = pd.read_excel(file_1892, sheet_name="data")
 # it has the following columns
 # Nro.	Fecha	Instrumento	Emisor	Monto	Equipo	Lote	Cédula Pagador	Resultado	Autorización
 biopago_file = f"./datos/account_statements/{mm}-{yy}-biopago.xlsx"
-df_biopago = pd.read_excel(biopago_file, header=None, names=[
+df_biopago = pd.read_excel(biopago_file, skiprows=[0], header=None, names=[
     "number",
     "date",
     "instrument",
@@ -171,8 +171,19 @@ df_1892_norm = pd.DataFrame({
     "settlementDate": None
 })
 
+df_biopago_norm = pd.DataFrame({
+    "reference": df_biopago["number"],
+    "amount": df_biopago["amount"],
+    "date": pd.to_datetime(df_biopago["date"], format="%d/%m/%Y", errors="coerce"),
+    "bank": "BIOPAGO",
+    "account_number": "1892",
+    "description": df_biopago["instrument"] + " " + df_biopago["issuer"],
+    "settlementCode": '',
+    "settlementDate": None
+})
+
 # merge then in a single object
-payments = pd.concat([df_9290_norm, df_1892_norm], ignore_index=True)
+payments = pd.concat([df_9290_norm, df_1892_norm, df_biopago_norm], ignore_index=True)
 
 # print the list of payments
 # print("Normalized Payments:")
