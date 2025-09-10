@@ -92,8 +92,8 @@ df_biopago = pd.read_excel(biopago_file, skiprows=[0], header=None, names=[
     "authorization"
 ])
 
-print("Biopago transactions loaded:", df_biopago.shape)
-print(df_biopago.to_string())
+# print("Biopago transactions loaded:", df_biopago.shape)
+# print(df_biopago.to_string())
 
 # load the settlments 
 # the file is in ./datos/settlements/cuadro-{MM}-{YY}.xlsx
@@ -177,7 +177,7 @@ df_biopago_norm = pd.DataFrame({
     "date": pd.to_datetime(df_biopago["date"], format="%d/%m/%Y", errors="coerce"),
     "bank": "BIOPAGO",
     "account_number": "1892",
-    "description": df_biopago["instrument"] + " " + df_biopago["issuer"],
+    "description": df_biopago["equipment"],
     "settlementCode": '',
     "settlementDate": None
 })
@@ -225,7 +225,7 @@ for index, payment in payments.iterrows():
 print("Payments not settled:", len(not_settled_payments))
 
 toPrintData = pd.DataFrame(paymentsDict)
-print(toPrintData.to_string())
+# print(toPrintData.to_string())
 
 toPrintData.to_excel(f"./datos/payments_{mm}_{yy}.xlsx", index=False)
 print(f"File ./datos/payments_{mm}_{yy}.xlsx generated with {len(payments)} payments")
