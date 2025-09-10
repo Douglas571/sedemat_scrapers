@@ -86,7 +86,7 @@ df_1892 = pd.read_excel(file_1892, sheet_name="data")
 # 9. referncia
 # 10. monto
 # settlements_file = f"./datos/settlements/cuadro-{mm}-{yy}.xlsx"
-settlements_file = f"./datos/settlements/cuadro-completo.xlsx"
+settlements_file = f"./datos/settlements/cuadro-{mm}-{yy}.xlsx"
 df_settlements = pd.read_excel(settlements_file)
 
 # in this case, remove all the settlements that has "EXONERADO" in refernece column
@@ -131,7 +131,9 @@ df_9290_norm = pd.DataFrame({
     "date": pd.to_datetime(df_9290["Fecha"], format="%d-%m-%Y", errors="coerce"),
     "bank": "BDV",
     "account_number": "9290",
-    "description": df_9290["Descripción"]
+    "description": df_9290["Descripción"],
+    "settlementCode": '',
+    "settlementDate": None
 })
 
 # normalize df_1892
@@ -141,7 +143,9 @@ df_1892_norm = pd.DataFrame({
     "date": pd.to_datetime(df_1892["fecha"], format="%d/%m/%Y", errors="coerce"),
     "bank": "BANCO DE VENEZUELA",
     "account_number": "1892",
-    "description": df_1892["concepto"]
+    "description": df_1892["concepto"],
+    "settlementCode": '',
+    "settlementDate": None
 })
 
 # merge then in a single object
@@ -161,6 +165,8 @@ payments = pd.concat([df_9290_norm, df_1892_norm], ignore_index=True)
 
 not_settled_payments = []
 
+paymentsDict = payments.to_dict(orient="records")
+
 # for each payment
 for index, payment in payments.iterrows():
   # for each settlement
@@ -172,6 +178,8 @@ for index, payment in payments.iterrows():
     # if payment reference is included in settlement reference, continue with another payment
     if payment_reference in str(settlement["referencia"]):
       found = True
+      paymentsDict[index]["settlementCode"] = str(settlement["num_comprobante"])
+      paymentsDict[index]["settlementDate"] = str(settlement["fecha"])
   
   # if not, add payment to not settled payments
   if not found:
@@ -179,11 +187,15 @@ for index, payment in payments.iterrows():
 
 print("Payments not settled:", len(not_settled_payments))
 
-print("Payments not settled:")
-print(pd.DataFrame(not_settled_payments).to_string())
+toPrintData = pd.DataFrame(paymentsDict)
+print(toPrintData.to_string())
+
+toPrintData.to_excel(f"./datos/payments_{mm}_{yy}.xlsx", index=False)
+print(f"File ./datos/payments_{mm}_{yy}.xlsx generated with {len(payments)} payments")
+
 
 # generate an excel file with the payments not settled
-not_settled_payments_df = pd.DataFrame(not_settled_payments)
-not_settled_payments_file = f"./not_settled_payments_{mm}_{yy}.xlsx"
-not_settled_payments_df.to_excel(not_settled_payments_file, index=False)
-print(f"File {not_settled_payments_file} generated with {len(not_settled_payments)} payments not settled")
+# not_settled_payments_df = pd.DataFrame(not_settled_payments)
+# not_settled_payments_file = f"./datos/not_settled_payments_{mm}_{yy}.xlsx"
+# not_settled_payments_df.to_excel(not_settled_payments_file, index=False)
+# print(f"File {not_settled_payments_file} generated with {len(not_settled_payments)} payments not settled")
