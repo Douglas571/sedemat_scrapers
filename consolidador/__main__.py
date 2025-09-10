@@ -1,6 +1,9 @@
+import locale
 import pandas as pd
 import os
 from datetime import datetime
+
+locale.setlocale(locale.LC_ALL, 'es_VE.utf8')
 
 # this program will check taht that the payments in account statement files, are in the settlement files for that month 
 # 
@@ -71,6 +74,26 @@ df_9290 = pd.read_excel(file_9290, sheet_name="Table 2")
 #  7. rif
 #  8. numeroCuenta
 df_1892 = pd.read_excel(file_1892, sheet_name="data")
+
+# for biopago transactions, load the file from ./datos/account_statements/{MM}-{YY}-biopago.xlsx
+# it has the following columns
+# Nro.	Fecha	Instrumento	Emisor	Monto	Equipo	Lote	Cédula Pagador	Resultado	Autorización
+biopago_file = f"./datos/account_statements/{mm}-{yy}-biopago.xlsx"
+df_biopago = pd.read_excel(biopago_file, header=None, names=[
+    "number",
+    "date",
+    "instrument",
+    "issuer",
+    "amount",
+    "equipment",
+    "lot",
+    "payer_id",
+    "result",
+    "authorization"
+])
+
+print("Biopago transactions loaded:", df_biopago.shape)
+print(df_biopago.to_string())
 
 # load the settlments 
 # the file is in ./datos/settlements/cuadro-{MM}-{YY}.xlsx
@@ -173,6 +196,9 @@ for index, payment in payments.iterrows():
   found = False
 
   payment_reference = str(payment["reference"]).split(".")[0][-6:]
+
+  if isinstance(payment["amount"], str):
+    paymentsDict[index]["amount"] = locale.atof(payment["amount"])
 
   for index_settlement, settlement in df_settlements.iterrows():
     # if payment reference is included in settlement reference, continue with another payment
