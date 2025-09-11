@@ -225,6 +225,16 @@ for index, payment in payments.iterrows():
 print("Payments not settled:", len(not_settled_payments))
 
 toPrintData = pd.DataFrame(paymentsDict)
+toPrintData.columns = [
+    "referencia",
+    "monto",
+    "fecha",
+    "banco",
+    "numero_cuenta",
+    "descripcion",
+    "codigo_liquidacion",
+    "fecha_liquidacion"
+]
 # print(toPrintData.to_string())
 
 toPrintData.to_excel(f"./datos/payments_{mm}_{yy}.xlsx", index=False)
