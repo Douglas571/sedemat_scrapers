@@ -109,7 +109,7 @@ df_biopago = pd.read_excel(biopago_file, skiprows=[0], header=None, names=[
 # 9. referncia
 # 10. monto
 # settlements_file = f"./datos/settlements/cuadro-{mm}-{yy}.xlsx"
-settlements_file = f"./datos/settlements/cuadro-{mm}-{yy}.xlsx"
+settlements_file = f"./datos/settlements/cuadro_to_use.xlsx"
 df_settlements = pd.read_excel(settlements_file)
 
 # in this case, remove all the settlements that has "EXONERADO" in refernece column
@@ -213,10 +213,10 @@ for index, payment in payments.iterrows():
 
   for index_settlement, settlement in df_settlements.iterrows():
     # if payment reference is included in settlement reference, continue with another payment
-    if payment_reference in str(settlement["referencia"]):
+    if len(payment_reference.strip()) > 3 and (payment_reference in str(settlement["referencia"])):
       found = True
-      paymentsDict[index]["settlementCode"] = str(settlement["num_comprobante"])
-      paymentsDict[index]["settlementDate"] = str(settlement["fecha"])
+      paymentsDict[index]["settlementCode"] = str(int(settlement["num_comprobante"]))
+      paymentsDict[index]["settlementDate"] = datetime.strptime(str(settlement["fecha"]), "%Y-%m-%d %H:%M:%S").date()
   
   # if not, add payment to not settled payments
   if not found:

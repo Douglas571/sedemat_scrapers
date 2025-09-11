@@ -16,7 +16,13 @@ def read_excel_file(file):
         texto_comprobante = hoja['B8'].value
         comprobante['razon_social'] = hoja['C12'].value
         comprobante['rif'] = f"{hoja['H12'].value or ''} {hoja['H13'].value or ''}".strip()
-        comprobante['num_comprobante'] = texto_comprobante[-4:]
+
+        cell_value = hoja['B8'].value
+        if cell_value:
+            match = re.search(r"COMPROBANTE DE INGRESO N°(\d+)", str(cell_value), re.IGNORECASE)
+            if match:
+                comprobante['num_comprobante'] = match.group(1)
+
         comprobante['partida'] = extraer_partida(hoja['A21'].value)
         texto_fecha_pago = hoja['C39'].value
         comprobante['fecha_pago'] = texto_fecha_pago
