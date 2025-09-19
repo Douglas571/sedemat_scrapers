@@ -224,7 +224,16 @@ for index, payment in payments.iterrows():
 
 print("Payments not settled:", len(not_settled_payments))
 
-toPrintData = pd.DataFrame(paymentsDict)
+# filter from paymentDict all the payments that contains the following words in description
+newPaymentsDict = []
+
+for payment in paymentsDict: 
+   description = str(payment["description"]).lower()
+
+   if not any(word in description for word in ["saldo inicial", "mantenimiento", "comision", "emision", "cargo", 'servicio'  ]) and payment["amount"] > 0:
+      newPaymentsDict.append(payment)
+
+toPrintData = pd.DataFrame(newPaymentsDict)
 toPrintData.columns = [
     "referencia",
     "monto",
