@@ -1,3 +1,4 @@
+import time
 import locale
 import pandas as pd
 import os
@@ -11,9 +12,13 @@ locale.setlocale(locale.LC_ALL, 'es_VE.utf8')
 #   month (it can be a number from 1 to 12) 
 #   year (it can be a number from 2020 to current year)
 
+startTime = time.time()
+
 # ask user for month and year
 month = input("Enter month (1-12): ")
 year = input("Enter year (2020-current): ")
+
+
 
 # validate month and year
 current_year = datetime.now().year
@@ -122,6 +127,9 @@ df_settlements = pd.read_excel(settlements_file)
 
 # here you would implement the logic to check that payments in account statements are in settlements
 # (matching by reference, amount, or other criteria depending on your business rules)
+
+print ('---- load data / %s seconds ----' % (time.time() - startTime))
+
 print("Account 9290 statement loaded:", df_9290.shape)
 print("Account 1892 statement loaded:", df_1892.shape)
 print("Settlements loaded (filtered):", df_settlements.shape)
@@ -144,15 +152,17 @@ print("Settlements loaded (filtered):", df_settlements.shape)
 #  5. account_number 
 
 # map the data in df_9290 and df_1892 into the common structure
-# 9290 => BDV
+# 9290 => BDT
 # 1892 => BANCO DE VENEZUELA
+
+normalization_start_time = time.time()
 
 # normalize df_9290
 df_9290_norm = pd.DataFrame({
     "reference": df_9290["Referencia"],
     "amount": df_9290["Crédito"].fillna(0) - df_9290["Débito"].fillna(0),  # positive = credit, negative = debit
     "date": pd.to_datetime(df_9290["Fecha"], format="%d-%m-%Y", errors="coerce"),
-    "bank": "BDV",
+    "bank": "BDT",
     "account_number": "9290",
     "description": df_9290["Descripción"],
     "settlementCode": '',
@@ -190,39 +200,56 @@ payments = pd.concat([df_9290_norm, df_1892_norm, df_biopago_norm], ignore_index
 # print(payments.to_string())
 
 
+print ('---- normalized data / %s seconds ----' % (time.time() - normalization_start_time))
+
 # ------------------------------------------
 #             CONSOLIDATION FASE 
 # ------------------------------------------
 
-
-# for each entry in settlements data frame, print reference
+consolidation_start_time = time.time()
 
 not_settled_payments = []
 
 paymentsDict = payments.to_dict(orient="records")
+filteredPaymentsDict = []
 
 # for each payment
 for index, payment in payments.iterrows():
+
   # for each settlement
   found = False
-
-  payment_reference = str(payment["reference"]).split(".")[0][-6:]
+  amount = 0
 
   if isinstance(payment["amount"], str):
-    paymentsDict[index]["amount"] = locale.atof(payment["amount"])
+    amount = locale.atof(payment["amount"])
+    paymentsDict[index]["amount"] = amount
+
+  description = str(payment["description"]).lower()
+
+#   if not any(word in description for word in ["saldo inicial", "mantenimiento", "comision", "emision", "cargo", 'servicio'  ]) and amount > 0:
+#     continue
+
+  payment_reference = str(payment["reference"]).strip().split(".")[0]
 
   for index_settlement, settlement in df_settlements.iterrows():
     # if payment reference is included in settlement reference, continue with another payment
-    if len(payment_reference.strip()) > 3 and (payment_reference in str(settlement["referencia"])):
-      found = True
-      paymentsDict[index]["settlementCode"] = str(int(settlement["num_comprobante"]))
-      paymentsDict[index]["settlementDate"] = datetime.strptime(str(settlement["fecha"]), "%Y-%m-%d %H:%M:%S").date()
-  
-  # if not, add payment to not settled payments
-  if not found:
-    not_settled_payments.append(payment)
+    settlement_references = str(settlement["referencia"]).strip().split("-")
 
-print("Payments not settled:", len(not_settled_payments))
+    for st in settlement_references:
+      if payment_reference.endswith(st) and len(st) > 0:
+        found = True
+        paymentsDict[index]["settlementCode"] = str(int(settlement["num_comprobante"]))
+        paymentsDict[index]["settlementDate"] = datetime.strptime(str(settlement["fecha"]), "%Y-%m-%d %H:%M:%S").date()
+
+        filteredPaymentsDict.append(paymentsDict[index])
+
+print ('---- consolidated data / %s seconds ----' % (time.time() - consolidation_start_time))
+
+# ------------------------------------------
+#             STORE FASE 
+# ------------------------------------------
+
+store_start_time = time.time()
 
 # filter from paymentDict all the payments that contains the following words in description
 newPaymentsDict = []
@@ -247,7 +274,9 @@ toPrintData.columns = [
 # print(toPrintData.to_string())
 
 toPrintData.to_excel(f"./datos/payments_{mm}_{yy}.xlsx", index=False)
-print(f"File ./datos/payments_{mm}_{yy}.xlsx generated with {len(payments)} payments")
+# print(f"File ./datos/payments_{mm}_{yy}.xlsx generated with {len(payments)} payments")
+
+print ('---- store data / %s seconds ----' % (time.time() - store_start_time))
 
 
 # generate an excel file with the payments not settled
