@@ -3,6 +3,7 @@ import locale
 import pandas as pd
 import os
 from datetime import datetime
+import openpyxl
 
 locale.setlocale(locale.LC_ALL, 'es_VE.utf8')
 
@@ -231,22 +232,49 @@ for index, payment in payments.iterrows():
 
   payment_reference = str(payment["reference"]).strip().split(".")[0]
 
+
   for index_settlement, settlement in df_settlements.iterrows():
     # if payment reference is included in settlement reference, continue with another payment
     settlement_references = str(settlement["referencia"]).strip().split("-")
 
     for st in settlement_references:
-      if payment_reference.endswith(st) and len(st) > 0:
+    
+      string_to_check = st
+
+    #   if "CUMAREBO" in str(payment["description"]):
+    #     string_to_check = st[-4:]
+
+      if payment_reference.endswith(string_to_check) and len(string_to_check) > 0:
+
+        if "CUMAREBO" in str(payment["description"]):
+            print(string_to_check, ' ', payment_reference, ' / ', str(int(settlement["num_comprobante"])))
+
         found = True
         paymentsDict[index]["settlementCode"] = str(int(settlement["num_comprobante"]))
         paymentsDict[index]["settlementDate"] = datetime.strptime(str(settlement["fecha"]), "%Y-%m-%d %H:%M:%S").date()
 
         filteredPaymentsDict.append(paymentsDict[index])
+        
+
+
+# # ------------------------------------------
+# #        BIOPAGO CONSOLIDATION FASE
+# # ------------------------------------------
+
+
+# # get a list of payments with "BIOPAGO" in description
+# biopago_payments = payments[payments["description"].str.contains("BIOPAGO", case=False)]
+# # get a list of payments with "LIQUIDACION TDD BIOPAGOBDV" in description
+# liquidation_payments = payments[payments["description"].str.contains("LIQUIDACION TDD BIOPAGOBDV", case=False)]
+
+# # 
+
+
 
 print ('---- consolidated data / %s seconds ----' % (time.time() - consolidation_start_time))
 
 # ------------------------------------------
-#             STORE FASE 
+#                STORE FASE 
 # ------------------------------------------
 
 store_start_time = time.time()
@@ -284,3 +312,25 @@ print ('---- store data / %s seconds ----' % (time.time() - store_start_time))
 # not_settled_payments_file = f"./datos/not_settled_payments_{mm}_{yy}.xlsx"
 # not_settled_payments_df.to_excel(not_settled_payments_file, index=False)
 # print(f"File {not_settled_payments_file} generated with {len(not_settled_payments)} payments not settled")
+
+# open the file
+wb = openpyxl.load_workbook(filename=f"./datos/payments_{mm}_{yy}.xlsx")
+ws = wb.active
+
+# iterate over each row
+for row in ws.iter_rows(values_only=False):
+    # if row G column is not empty, fill the row with red color, otherwise, fill green
+    if not row[6].value:
+        for cell in row:
+            cell.fill = openpyxl.styles.PatternFill(start_color='FFC7CE', fill_type='solid')
+    else:
+        for cell in row:
+            cell.fill = openpyxl.styles.PatternFill(start_color='C6EFCE', fill_type='solid')
+
+    # if the row D column has "BIOPAGO" and G column is not empty, fill with yellow colors
+    if row[3].value == "BIOPAGO" and row[6].value:
+        for cell in row:
+            cell.fill = openpyxl.styles.PatternFill(start_color='FFEB9C', fill_type='solid')
+
+# save the file
+wb.save(filename=f"./datos/payments_{mm}_{yy}.xlsx")
