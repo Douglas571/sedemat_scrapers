@@ -285,7 +285,7 @@ newPaymentsDict = []
 for payment in paymentsDict: 
    description = str(payment["description"]).lower()
 
-   if not any(word in description for word in ["saldo inicial", "mantenimiento", "comision", "emision", "cargo", 'servicio'  ]) and payment["amount"] > 0:
+   if not any(word in description for word in ["saldo inicial", "mantenimiento", "comision", "emision", "cargo", 'comis'  ]) and payment["amount"] > 0:
       newPaymentsDict.append(payment)
 
 toPrintData = pd.DataFrame(newPaymentsDict)
