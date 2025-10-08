@@ -235,11 +235,11 @@ for index, payment in payments.iterrows():
 
   for index_settlement, settlement in df_settlements.iterrows():
     # if payment reference is included in settlement reference, continue with another payment
-    settlement_references = str(settlement["referencia"]).strip().split("-")
+    settlement_references = str(settlement["referencia"]).strip().replace(" ", "").replace("/", "").split("-")
 
     for st in settlement_references:
     
-      string_to_check = st
+      string_to_check = st.rjust(6, "0")
 
     #   if "CUMAREBO" in str(payment["description"]):
     #     string_to_check = st[-4:]
@@ -252,6 +252,10 @@ for index, payment in payments.iterrows():
         found = True
         paymentsDict[index]["settlementCode"] = str(int(settlement["num_comprobante"]))
         paymentsDict[index]["settlementDate"] = datetime.strptime(str(settlement["fecha"]), "%Y-%m-%d %H:%M:%S").date()
+
+        paymentsDict[index]["payment_for"] = settlement["pago_por"]
+        paymentsDict[index]["tax_payer"] = settlement["razon_social"]
+        paymentsDict[index]["tax_payer_id"] = settlement["rif_cedula"]
 
         filteredPaymentsDict.append(paymentsDict[index])
         
@@ -297,7 +301,10 @@ toPrintData.columns = [
     "numero_cuenta",
     "descripcion",
     "codigo_liquidacion",
-    "fecha_liquidacion"
+    "fecha_liquidacion",
+    "pago_por",
+    "razon_social",
+    "rif_cedula"
 ]
 # print(toPrintData.to_string())
 
