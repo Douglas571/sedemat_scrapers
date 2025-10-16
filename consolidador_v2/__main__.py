@@ -26,6 +26,7 @@ Settlements Map(
 from openpyxl import load_workbook
 import json
 from datetime import datetime
+import sys
 
 def load_settlements_map():
   settlements_map = {}
@@ -92,7 +93,7 @@ def load_9290_payments(month, year):
 
     try:
       workbook = load_workbook(file_name)
-      sheet = workbook.active
+      sheet = workbook["Table 2"]
       payments_list = []
 
       for index, row in enumerate(sheet.iter_rows(values_only=True), start=1):
@@ -145,7 +146,7 @@ def load_1892_payments(month, year):
       continue
 
     payment = {
-      "date": row[0],
+      "date": datetime.strptime(row[0], "%d/%m/%Y"),
       "reference": row[1],
       "description": row[2],
       "amount": float(row[3].replace(".", "").replace(",", ".")),
@@ -217,9 +218,20 @@ def load_payments_list(month, year):
   print(f"month: {month}, year: {year}")
 
   payments_list = []
-  # payments_list.extend(load_9290_payments(month, year))
+  payments_list.extend(load_9290_payments(month, year))
   payments_list.extend(load_1892_payments(month, year))
-  # payments_list.extend(load_biopago_payments(month, year))
+  payments_list.extend(load_biopago_payments(month, year))
   return payments_list
 
-print (json.dumps(load_payments_list(1, 2025), indent=2, default=str))
+def main(argv):
+  if len(argv) != 3:
+    print("Usage: python3 consolidador_v2.py <month> <year>")
+    return
+
+  month = int(argv[1])
+  year = int(argv[2])
+
+  print(json.dumps(load_payments_list(month, year), indent=2, default=str))
+
+if __name__ == "__main__":
+  main(sys.argv)
