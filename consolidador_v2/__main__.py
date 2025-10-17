@@ -97,11 +97,21 @@ def load_9290_payments(month, year):
       payments_list = []
 
       for index, row in enumerate(sheet.iter_rows(values_only=True), start=1):
+
+        if index == 1:
+          print(row)
+          continue
+
         payment = {}
         payment["date"] = row[0]
         payment["reference"] = row[1]
-        payment["description"] = row[2]
-        payment["amount"] = float(row[3] or row[4])
+        payment["description"] = row[3]
+        
+        # payment["amount"] = float(row[4] or row[5])
+        debit = float(row[4] or 0) * -1
+        credit = float(row[5] or 0)
+        payment["amount"] = debit or credit
+
         payment["bank"] = "BDT"
         payment["account_number"] = "9290"
 
@@ -232,6 +242,12 @@ def main(argv):
   year = int(argv[2])
 
   print(json.dumps(load_payments_list(month, year), indent=2, default=str))
+
+def asigne_payments_to_settlements(payments_list, settlements_map):
+  """
+    should be able to see the list of settled payments 
+    
+  """
 
 if __name__ == "__main__":
   main(sys.argv)
