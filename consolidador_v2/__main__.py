@@ -201,6 +201,10 @@ def load_biopago_payments(month, year):
     if index == 1:
       continue
 
+    # omit empty rows (those with amount = None)
+    if row[4] == None: 
+      continue
+
     # print(row)
     payment = {
       "date": row[1],
