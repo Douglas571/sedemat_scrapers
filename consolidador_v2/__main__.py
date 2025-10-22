@@ -54,6 +54,8 @@ def load_settlements_list():
 
     settlement['not_found_payments'] = ''
 
+    settlement['incorrect_amount'] = False
+
 
 
     settlement['is_verified'] = True
@@ -307,10 +309,12 @@ def asigne_payments_to_settlements(payments_list, settlements_list):
 
       total_amount = sum([payment['amount'] for payment in settlement['payments'] if not payment.get('not_found', True)])
 
-      print(total_amount, settlement['monto'])
-      print(json.dumps(settlement, indent=2, default=str))
+      # print(total_amount, settlement['monto'])
+      # print(json.dumps(settlement, indent=2, default=str))
       
-      settlement['is_verified'] = total_amount - settlement['monto'] == 0
+      if total_amount - settlement['monto'] != 0:
+        settlement['incorrect_amount'] = True
+        settlement['is_verified'] = False
 
   print(f"Payments found: {counter}")
 
@@ -350,7 +354,7 @@ def main(argv):
   # print(json.dumps(payments_list, indent=2, default=str))
   asigne_payments_to_settlements(payments_list, settlements_list)
 
-  print(json.dumps(settlements_list, indent=2, default=str))
+  # print(json.dumps(settlements_list, indent=2, default=str))
   # print(json.dumps(payments_list, indent=2, default=str))
 
 
