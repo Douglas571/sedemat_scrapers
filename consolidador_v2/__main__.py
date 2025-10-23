@@ -54,7 +54,7 @@ def load_settlements_list():
 
     settlement['not_found_payments'] = ''
 
-    settlement['incorrect_amount'] = False
+    settlement['amount_difference'] = 0
 
 
 
@@ -280,6 +280,13 @@ def asigne_payments_to_settlements(payments_list, settlements_list):
 
         is_deposit = 'cumarebo' == payment_in_list['description'].lower().strip()
 
+        # the date is valid when payment date is greater or equal to settlement date
+        # has_valid_date = payment_in_list['date'] >= settlement['fecha_pago']
+        # if not has_valid_date:
+        #   print(f"Warning: payment {payment_in_list['reference']} has an invalid date: {payment_in_list['date']} (settlement date: {settlement['fecha']})")
+
+        #   continue
+
         if str(payment_in_list['reference']).endswith(six_digit_ref) or (is_deposit and str(payment_in_list['reference']).endswith(four_digit_ref)):
           found = True
           payment_index = settlement['payments'].index(payment)
@@ -309,12 +316,19 @@ def asigne_payments_to_settlements(payments_list, settlements_list):
 
       total_amount = sum([payment['amount'] for payment in settlement['payments'] if not payment.get('not_found', True)])
 
-      # print(total_amount, settlement['monto'])
-      # print(json.dumps(settlement, indent=2, default=str))
+      total_amount = round(total_amount, 2)
       
-      if total_amount - settlement['monto'] != 0:
-        settlement['incorrect_amount'] = True
+      difference = total_amount - (settlement['monto'] or 0)
+      if difference != 0 and len(not_found) == 0:
+        # print(f"Settlement {settlement['num_comprobante']}: amount: {settlement['monto']}, payment sum: {total_amount}, difference: {difference}")
         settlement['is_verified'] = False
+        settlement['amount_difference'] = difference
+
+      # if there is lacking payments, then display the missing amount 
+      if (len(not_found) > 0):
+        lacking_amount = (settlement['monto'] or 0) - total_amount
+        settlement['amount_difference'] = lacking_amount
+
 
   print(f"Payments found: {counter}")
 
