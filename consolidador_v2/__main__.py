@@ -63,7 +63,10 @@ def load_settlements_list():
 
     references = str(settlement['referencia']).strip().replace(" ", "").replace("/", "-").split("-")
 
-    settlement['is_exonerated'] = 'EXONERADO' in settlement['referencia'].upper() or 'EXONERADO' in str(settlement['monto']).upper() or 'EXONERADO' in settlement['banco'].upper() or 'EXONERADO' in str(settlement['cuenta']).upper()
+    settlement['is_exonerated'] = any([
+      'EXONERADO' in str(x).upper() if x is not None else False
+      for x in [settlement['referencia'], settlement['monto'], settlement['banco'], settlement['cuenta']]
+    ])
 
     if not settlement['is_exonerated']:
       for ref in references:
@@ -129,7 +132,7 @@ def load_9290_payments(month, year):
         payment["bank"] = "BDT"
         payment["account_number"] = "9290"
 
-        if debit > 0: 
+        if payment['amount'] > 0: 
           payments_list.append(payment)
 
       return payments_list
@@ -162,7 +165,7 @@ def load_1892_payments(month, year):
     print(f"Warning: file {file_name} not found")
     return []
 
-  sheet = workbook.active
+  sheet = workbook["data"]
   payments_list = []
 
   for index, row in enumerate(sheet.iter_rows(values_only=True), start=1):
@@ -170,11 +173,30 @@ def load_1892_payments(month, year):
     if index == 1:
       continue
 
+    # if row[4] is an integer or float, pass it as it is, else, convert 
+    amount = 0
+    try:
+      amount = float(row[4].replace(".", "").replace(",", "."))
+    except AttributeError:
+      amount = float(row[4] or 0)
+
+    print(row[0])
+
+    date = row[0]
+    if type(date) is str:
+      try:
+        date = datetime.strptime(row[0], "%d/%m/%Y").date()
+      except ValueError:
+        print(f"Warning: invalid date format {row[0]} in file {file_name}, row {index}")
+        continue
+    else:
+      date = row[0].date()
+
     payment = {
-      "date": datetime.strptime(row[0], "%d/%m/%Y"),
+      "date": date,
       "reference": str(row[1]).strip(),
       "description": row[2],
-      "amount": float(row[4].replace(".", "").replace(",", ".")),
+      "amount": amount,
       "bank": "Banco de Venezuela",
       "account_number": "1892"
     }
@@ -296,6 +318,7 @@ def asigne_payments_to_settlements(payments_list, settlements_list):
 
           payment_in_list['matched_settlement'] = settlement['num_comprobante']
           payment_in_list['settlement_date'] = settlement['fecha']
+          payment_in_list['settlement_description'] = settlement['legal_name'] + " - " + settlement['rif_cedula'] + " - " + settlement['pago_por']
           counter = counter + 1
           break
       
