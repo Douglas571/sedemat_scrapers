@@ -24,27 +24,7 @@ import openpyxl
 from project_types import Payment
 from datetime import datetime
 
-MONTHS_IN_SPANISH = [
-    "ENERO",
-    "FEBRERO",
-    "MARZO",
-    "ABRIL",
-    "MAYO",
-    "JUNIO",
-    "JULIO",
-    "AGOSTO",
-    "SEPTIEMBRE",
-    "OCTUBRE",
-    "NOVIEMBRE",
-    "DICIEMBRE"
-]
-
-BANKS = {
-  '1892': {
-    'name': 'VENEZUELA',
-    'account_number': '0102-0339-2500-0107-1892'
-  }
-}
+from settings import *
 
 def build_incomes_book(transactions: list[Payment], month: int, year: int,bank_account: str, initial_amount: float) -> None:
   """
