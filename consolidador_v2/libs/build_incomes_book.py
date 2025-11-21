@@ -1,5 +1,6 @@
 from load_standardized_payments import *
 from load_non_standardized_payments_venezuela import *
+from load_account_statement_data import load_account_statement_data
 
 import os
 
@@ -70,7 +71,13 @@ def build_incomes_book(transactions: list[Payment], month: int, year: int,bank_a
 
   row_num = 12
   for payment in transactions:
-    ws.cell(row=row_num, column=1).value = payment.date.strftime("%d/%m/%Y")
+
+    if payment.account_number != str(bank_account):
+      continue
+
+    date = payment.settlement_date if payment.settlement_date else payment.date
+
+    ws.cell(row=row_num, column=1).value = date.strftime("%d/%m/%Y")
     ws.cell(row=row_num, column=2).value = payment.description
     ws.cell(row=row_num, column=3).value = payment.reference[-6:]
     ws.cell(row=row_num, column=4).value = payment.matched_settlement_code
@@ -95,24 +102,18 @@ def build_incomes_book(transactions: list[Payment], month: int, year: int,bank_a
   wb.save(file_name)
   print(f"File {file_name} generated with the incomes book")
 
-  
-
-  # if bank account is 1892, pick the ./templates/book_1892.xlsx
-  # if it's 9290, pick the ./templates/book_9290.xlsx
-  # if not, throw an error and exit  
-
-  # get the payments paid in the given month and year, for this, filter the payments which settlement_date is the given month
-
-  # define a list of dictionaries with the payments data needed for the book
-  # for the payments, the list 
-
-  # calculate the 
-
 if __name__ == "__main__":
+  import sys
 
-  month = 4
-  year = 2025
-  bank_account = '1892'
+  if len(sys.argv) != 4:
+    raise ValueError("Must provide month (1-12), year (MMMM) and bank account as arguments (1892 or 9290)")
+
+  month = int(sys.argv[1])
+  year = int(sys.argv[2])
+  bank_account = sys.argv[3]
+
+  account_statement_data = load_account_statement_data(month, year, bank_account)
+
   transactions = load_standardized_payments("./datos/exports/payments.xlsx")
 
   settled_payments = [p for p in transactions if p.matched_settlement_code is not None and p.settlement_date.month == month and p.settlement_date.year == year]
@@ -125,4 +126,4 @@ if __name__ == "__main__":
 
   transactions.sort(key=lambda p: p.settlement_date if p.settlement_date else p.date)
 
-  build_incomes_book(transactions, month, year, bank_account, initial_amount=192482.5)
+  build_incomes_book(transactions, month, year, bank_account, initial_amount=account_statement_data.initial_amount)
