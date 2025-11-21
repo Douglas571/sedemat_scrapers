@@ -1,8 +1,9 @@
+import os
+import sys
+
 from load_standardized_payments import *
 from load_non_standardized_payments_venezuela import *
 from load_account_statement_data import load_account_statement_data
-
-import os
 
 # stage 7 - Presentation
 # this script will build the incomes book
@@ -83,8 +84,6 @@ def build_incomes_book(transactions: list[Payment], month: int, year: int,bank_a
   print(f"File {file_name} generated with the incomes book")
 
 if __name__ == "__main__":
-  import sys
-
   if len(sys.argv) != 5:
     raise ValueError("Must provide month (1-12), year (ex: 2024, 2025), bank account as arguments (1892 or 9290), and relative path to payments file (ex: ./datos/exports/payments.xlsx)")
 
