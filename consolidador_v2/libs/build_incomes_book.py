@@ -85,12 +85,13 @@ def build_incomes_book(transactions: list[Payment], month: int, year: int,bank_a
 if __name__ == "__main__":
   import sys
 
-  if len(sys.argv) != 4:
-    raise ValueError("Must provide month (1-12), year (MMMM) and bank account as arguments (1892 or 9290)")
+  if len(sys.argv) != 5:
+    raise ValueError("Must provide month (1-12), year (ex: 2024, 2025), bank account as arguments (1892 or 9290), and relative path to payments file (ex: ./datos/exports/payments.xlsx)")
 
   month = int(sys.argv[1])
   year = int(sys.argv[2])
   bank_account = sys.argv[3]
+  path_to_payments = sys.argv[4]
 
   account_statement_data = load_account_statement_data(month, year, bank_account)
 
