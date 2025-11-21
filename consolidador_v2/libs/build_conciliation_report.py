@@ -9,7 +9,7 @@ from load_standardized_payments import load_standardized_payments
 from load_account_statement_data import load_account_statement_data
 from project_types import Payment
 
-def build_consolidation_report(transactions: list[Payment], month: int, year: int, bank_account: str) -> None:
+def build_conciliation_report(transactions: list[Payment], month: int, year: int, bank_account: str) -> None:
   '''
     This function will build the consolidation report
 
@@ -24,6 +24,8 @@ def build_consolidation_report(transactions: list[Payment], month: int, year: in
       None
   '''
   pass
+
+  # pick the template from ./templates/consolidation_report.xlsx
 
 if __name__ == "__main__":
   if len(sys.argv) != 5:
