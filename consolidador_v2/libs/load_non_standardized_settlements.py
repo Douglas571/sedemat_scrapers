@@ -19,99 +19,6 @@ SETTLEMENTS_COLUMNS_MAPPER = {
   "amount": 9,
 }
 
-def load_settlements_list(path: str = DEFAULT_SETTLEMENTS_PATH) -> list[Settlement]:
-
-  settlements_list = []
-  workbook = load_workbook(path)
-  sheet = workbook.active
-  for index, row in enumerate(sheet.iter_rows(values_only=True), start=1):
-
-    if index == 1:
-      continue
-
-    ## --- AMOUNT --- ##
-    is_exonerated = False
-    raw_amount = row[SETTLEMENTS_COLUMNS_MAPPER["amount"]]
-    if raw_amount == 'EXONERADO':
-      amount = 0.0
-    else:
-      amount = float(raw_amount)
-
-    ## --- REFERENCE --- ##
-    reference_raw = str(row[SETTLEMENTS_COLUMNS_MAPPER["reference_raw"]]).strip()
-
-    reference = reference_raw.replace("/", " ").replace("-", " ").split(" ")
-    reference = [ref.strip() for ref in reference if ref.strip() != '']
-
-    ## --- SETTLED AT --- ##
-    settled_at = row[SETTLEMENTS_COLUMNS_MAPPER["settled_at"]]
-    if type(settled_at) == str:
-      settled_at = datetime.strptime(settled_at, '%d/%m/%Y').date()    
-
-    std_settlement = Settlement(
-      legal_name = row[SETTLEMENTS_COLUMNS_MAPPER["legal_name"]],
-      rif_cedula = row[SETTLEMENTS_COLUMNS_MAPPER["rif_cedula"]],
-      code = str(row[SETTLEMENTS_COLUMNS_MAPPER["code"]]).strip(),
-      description = row[SETTLEMENTS_COLUMNS_MAPPER["description"]],
-      settled_at = settled_at,
-
-      account_number = row[SETTLEMENTS_COLUMNS_MAPPER["account_number"]],
-      bank = row[SETTLEMENTS_COLUMNS_MAPPER["bank"]],
-
-      amount = amount,
-      reference = reference,
-      reference_raw = reference_raw,
-
-      paid_at_raw = str(row[SETTLEMENTS_COLUMNS_MAPPER["paid_at_raw"]]),
-
-      payments = [],
-
-      is_exonerated=is_exonerated,
-    )
-
-    print(f"Loaded settlement: {std_settlement}")
-    print(std_settlement.model_dump())
-
-    settlement = {}
-    settlement['legal_name'] = row[0]
-    settlement['rif_cedula'] = row[1]
-    settlement['num_comprobante'] = row[2]
-    settlement['pago_por'] = row[3]
-    settlement['fecha_pago'] = row[4]
-    settlement['fecha'] = row[5]
-    settlement['cuenta'] = row[6]
-    settlement['banco'] = row[7]
-    
-    settlement['referencia'] = str(row[8]).strip()
-    settlement['monto'] = row[9]
-    settlement['payments'] = []
-
-    settlement['not_found_payments'] = ''
-
-    settlement['amount_difference'] = 0
-
-    settlement['is_verified'] = True
-    # settlement['comment'] = ''
-
-    references = str(settlement['referencia']).strip().replace(" ", "").replace("/", "-").split("-")
-
-    settlement['is_exonerated'] = any([
-      'EXONERADO' in str(x).upper() if x is not None else False
-      for x in [settlement['referencia'], settlement['monto'], settlement['banco'], settlement['cuenta']]
-    ])
-
-    if not settlement['is_exonerated']:
-      for ref in references:
-        payment = {}
-        payment['reference'] = ref
-        payment['amount'] = row[9] if len(references) == 1 else None
-        payment['not_found'] = True
-        settlement['payments'].append(payment)
-      
-    settlements_list.append(settlement)
-  return settlements_list
-
-
 
 def load_non_standardized_settlements(path: str = DEFAULT_SETTLEMENTS_PATH) -> list[Settlement]:
   settlements_list = []
@@ -156,6 +63,8 @@ def load_non_standardized_settlements(path: str = DEFAULT_SETTLEMENTS_PATH) -> l
     reference = []
     paid_at = []
     not_found_payments = []
+    bank=''
+    account_number=''
 
     if not is_exonerated:
       references = str(settlement['referencia'])
@@ -163,6 +72,9 @@ def load_non_standardized_settlements(path: str = DEFAULT_SETTLEMENTS_PATH) -> l
       reference = [ref.strip() for ref in reference if ref.strip() != '']
 
       not_found_payments = reference.copy()
+
+      bank = settlement['banco']
+      account_number = settlement['cuenta']
 
       paid_at_raw = settlement['fecha_pago']
       if type(paid_at_raw) == str:
@@ -191,8 +103,8 @@ def load_non_standardized_settlements(path: str = DEFAULT_SETTLEMENTS_PATH) -> l
       description = settlement['pago_por'],
       settled_at = settled_at,
 
-      account_number = settlement['cuenta'],
-      bank = settlement['banco'],
+      account_number = account_number,
+      bank = bank,
 
       amount = float(settlement['monto']) if not is_exonerated else 0.0,
       reference = reference,
@@ -214,5 +126,6 @@ if __name__ == '__main__':
         './datos/settlements/cuadro_to_use.xlsx'
     )
 
-    # for settlement in settlements_list:
-    #     print(json.dumps([settlement.model_dump()], indent=2, default=str))
+    for settlement in settlements_list:
+        # print(json.dumps([settlement.model_dump()], indent=2, default=str))
+        print(list(settlement.model_dump().keys()))

@@ -1,4 +1,4 @@
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, field_validator, field_serializer
 from typing import List, Optional, Tuple, Union
 from datetime import date
 
@@ -29,6 +29,23 @@ class Settlement(BaseModel):
   amount_difference: float = 0.0
 
   is_verified: bool = True
+
+  @field_serializer('reference', mode='plain')
+  def serialize_settled_at(self, value: List[str]) -> str:
+    return '-'.join(value)
+  
+  @field_serializer('paid_at', mode='plain')
+  def serialize_paid_at(self, value: List[date]) -> str:
+    if len(value) == 0:
+      return None
+    elif len(value) == 1:
+      return value[0].strftime('%d/%m/%Y')
+    else:
+      return '-'.join([v.strftime('%d/%m/%Y') for v in value])
+    
+  @field_serializer('not_found_payments', mode='plain')
+  def serialize_not_found_payments(self, value: List[str]) -> str:
+    return '-'.join(value)
 
   # @field_validator('bank', mode='before')
   # def validate_bank(cls, v):
