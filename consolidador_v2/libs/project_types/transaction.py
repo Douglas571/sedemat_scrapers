@@ -2,7 +2,7 @@ from datetime import date
 from pydantic import BaseModel, field_validator, validator
 from typing import Optional
 
-class Payment(BaseModel):
+class Transaction(BaseModel):
   date: date
   reference: str
   description: str

@@ -1,8 +1,8 @@
 from datetime import datetime
-from project_types import Payment
+from project_types import Transaction
 from openpyxl import load_workbook
 
-def load_non_standardized_payments_venezuela(path: str, only_withdrawals: bool = False) -> list[Payment]:
+def load_non_standardized_transactions_venezuela(path: str, only_withdrawals: bool = False) -> list[Transaction]:
   """
     If the file doesn't exists, print a warning and return an empty list
 
@@ -52,7 +52,7 @@ def load_non_standardized_payments_venezuela(path: str, only_withdrawals: bool =
     else:
       date = row[0].date()
 
-    standardized_payment = Payment(
+    standardized_payment = Transaction(
       date=date,
       reference=str(row[1]).strip(),
       description=row[2].strip(),
@@ -60,9 +60,6 @@ def load_non_standardized_payments_venezuela(path: str, only_withdrawals: bool =
       bank="Banco de Venezuela",
       account_number="1892"
     )
-
-
-
 
     if only_withdrawals:
       if standardized_payment.amount < 0:
@@ -89,5 +86,5 @@ if __name__ == "__main__":
     print(f"Warning: file {path} doesn't exist")
     sys.exit(1)
 
-  payments_list = load_non_standardized_payments_venezuela(path)
+  payments_list = load_non_standardized_transactions_venezuela(path)
   print(json.dumps([p.model_dump() for p in payments_list], indent=2, default=str))

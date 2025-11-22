@@ -1,9 +1,9 @@
 from openpyxl import load_workbook
 from datetime import datetime
 
-from project_types import Payment
+from project_types import Transaction
 
-def load_standardized_payments(path: str) -> list[Payment]:
+def load_standardized_payments(path: str) -> list[Transaction]:
   """
     If the file doesn't exists, print a warning and return an empty list
 
@@ -52,7 +52,7 @@ def load_standardized_payments(path: str) -> list[Payment]:
       elif type(row[7]) is datetime:
         settlement_date = row[7].date()
 
-    payment_obj = Payment(
+    payment_obj = Transaction(
       date=date,
       reference=str(row[1]).strip(),
       description=row[2],

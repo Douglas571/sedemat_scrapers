@@ -2,7 +2,7 @@ import os
 import sys
 
 from load_standardized_payments import *
-from load_non_standardized_payments_venezuela import *
+from libs.load_non_standardized_transactions_venezuela import *
 from load_account_statement_data import load_account_statement_data
 
 # stage 7 - Presentation
@@ -22,12 +22,12 @@ args:
 
 import openpyxl
 
-from project_types import Payment
+from project_types import Transaction
 from datetime import datetime
 
 from settings import *
 
-def build_incomes_book(transactions: list[Payment], month: int, year: int,bank_account: str, initial_amount: float) -> None:
+def build_incomes_book(transactions: list[Transaction], month: int, year: int,bank_account: str, initial_amount: float) -> None:
   """
     This function will build the incomes book
 
@@ -100,7 +100,7 @@ if __name__ == "__main__":
 
   settled_payments.sort(key=lambda p: p.matched_settlement_code)
 
-  commissions = load_non_standardized_payments_venezuela(f"./datos/account_statements/{str(year)[-2:]}-{month:02d}-{bank_account}.xlsx", only_withdrawals=True)
+  commissions = load_non_standardized_transactions_venezuela(f"./datos/account_statements/{str(year)[-2:]}-{month:02d}-{bank_account}.xlsx", only_withdrawals=True)
 
   transactions = settled_payments + commissions
 

@@ -5,14 +5,14 @@ import os
 import openpyxl
 
 
-from load_non_standardized_payments_venezuela import load_non_standardized_payments_venezuela
+from libs.load_non_standardized_transactions_venezuela import load_non_standardized_transactions_venezuela
 from load_standardized_payments import load_standardized_payments
 from load_account_statement_data import load_account_statement_data
-from project_types import Payment
+from project_types import Transaction
 
 from settings import *
 
-def build_conciliation_report(transactions: list[Payment], month: int, year: int, bank_account: str, final_amount: float) -> None:
+def build_conciliation_report(transactions: list[Transaction], month: int, year: int, bank_account: str, final_amount: float) -> None:
   '''
     This function will build the consolidation report
 
