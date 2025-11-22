@@ -3,7 +3,7 @@ from datetime import datetime
 
 from project_types import Transaction
 
-def load_standardized_payments(path: str) -> list[Transaction]:
+def load_standardized_transactions(path: str) -> list[Transaction]:
   """
     If the file doesn't exists, print a warning and return an empty list
 
@@ -83,5 +83,5 @@ if __name__ == "__main__":
     print(f"Warning: file {path} doesn't exist")
     sys.exit(1)
 
-  payments = load_standardized_payments(path)
+  payments = load_standardized_transactions(path)
   print(json.dumps([p.model_dump() for p in payments], indent=2, default=str))

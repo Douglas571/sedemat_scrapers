@@ -6,7 +6,7 @@ import openpyxl
 
 
 from libs.load_non_standardized_transactions_venezuela import load_non_standardized_transactions_venezuela
-from load_standardized_payments import load_standardized_payments
+from libs.load_standardized_transactions import load_standardized_transactions
 from load_account_statement_data import load_account_statement_data
 from project_types import Transaction
 
@@ -95,7 +95,7 @@ if __name__ == "__main__":
 
   account_statement_data = load_account_statement_data(month, year, bank_account)
 
-  transactions = load_standardized_payments("./datos/exports/payments.xlsx")
+  transactions = load_standardized_transactions("./datos/exports/payments.xlsx")
 
   pending_payments = []
   settled_payments = []

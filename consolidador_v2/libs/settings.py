@@ -23,3 +23,8 @@ BANKS = {
     'account_number': '0102-0339-2500-0107-9290'
   }
 }
+
+DEFAULT_SETTLEMENTS_PATH = 'datos/settlements/cuadro_to_use.xlsx'
+
+
+SHOW_WARNINGS = True

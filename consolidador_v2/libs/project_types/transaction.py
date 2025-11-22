@@ -1,5 +1,5 @@
 from datetime import date
-from pydantic import BaseModel, field_validator, validator
+from pydantic import BaseModel, field_validator
 from typing import Optional
 
 class Transaction(BaseModel):
