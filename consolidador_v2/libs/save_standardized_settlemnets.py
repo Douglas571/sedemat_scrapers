@@ -25,8 +25,8 @@ def save_standardized_settlements(settlements_list: list[Settlement], file_name:
     
     # write the headers
     headers = list(settlement_dict[0].keys())
-    for index, header in enumerate(headers, start=1):
-        print(f"{index}: {header}")
+    # for index, header in enumerate(headers, start=1):
+    #     print(f"{index}: {header}")
     ws.append(headers)
 
     # write the values
@@ -35,6 +35,7 @@ def save_standardized_settlements(settlements_list: list[Settlement], file_name:
         for index, value in enumerate(settlement.values()):
             
           if index == 14: # Omit the payments column
+              ws.cell(row_index, index+1).value = ''
               continue
 
           # print(row_index, index+1, value)
