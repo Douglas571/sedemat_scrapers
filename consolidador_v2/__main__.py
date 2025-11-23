@@ -23,11 +23,55 @@ Settlements Map(
 
 
 """
+
+import re
+from libs.settings import SHOW_WARNINGS
+
 import os
 from openpyxl import load_workbook
 import json
-from datetime import datetime
+from datetime import datetime, timedelta
 import sys
+
+def parse_date_intervals(data):
+    # Regex Breakdown:
+    # (\d{1,2})  -> Capture Group 1: Day (1 or 2 digits)
+    # [-\/]      -> Separator: Matches either hyphen or forward slash
+    # (\d{1,2})  -> Capture Group 2: Month (1 or 2 digits)
+    # [-\/]      -> Separator: Matches either hyphen or forward slash
+    # (\d{2,4})  -> Capture Group 3: Year (2 to 4 digits)
+    date_pattern = re.compile(r"(\d{1,2})[-\/](\d{1,2})[-\/](\d{2,4})")
+    
+    results = []
+
+    matches = date_pattern.findall(data)
+        
+    parsed_dates = []
+    
+    for day, month, year_str in matches:
+      try:
+        d, m = int(day), int(month)
+        y = int(year_str)
+        
+        # Handle 2-digit years (e.g., '25' becomes 2025)
+        if y < 100:
+            y += 2000
+        
+        # Create a datetime object for accurate comparison
+        dt = datetime(y, m, d)
+        parsed_dates.append(dt)
+      except ValueError:
+        # Skips invalid dates (e.g. if a month is 13)
+        continue
+    
+    # We need at least one date to form a range (min and max can be the same)
+    if parsed_dates:
+      min_date = min(parsed_dates)
+      max_date = max(parsed_dates)
+
+      return [min_date, max_date]
+    
+    return None
 
 def load_settlements_list():
   settlements_list = []
@@ -56,25 +100,57 @@ def load_settlements_list():
 
     settlement['amount_difference'] = 0
 
-
-
     settlement['is_verified'] = True
-    # settlement['comment'] = ''
+    settlement['is_voided'] = False
 
-    references = str(settlement['referencia']).strip().replace(" ", "").replace("/", "-").split("-")
+    settlement['fecha_pago_rango'] = row[3]
 
-    settlement['is_exonerated'] = any([
+    is_exonerated = any([
       'EXONERADO' in str(x).upper() if x is not None else False
       for x in [settlement['referencia'], settlement['monto'], settlement['banco'], settlement['cuenta']]
-    ])
+    ]) or settlement['referencia'] == "None"
 
-    if not settlement['is_exonerated']:
+    settlement['is_exonerated'] = is_exonerated
+
+    if not is_exonerated:
+
+      references = settlement['referencia'].replace("/", " ").replace("-", " ").split(" ")
+      references = [ref.strip() for ref in references if ref.strip() != '']
+      settlement['referencia'] = '-'.join(references)
+
+      paid_at = settlement['fecha_pago']
+      if type(paid_at) == str and '/' in paid_at and '-' in paid_at:
+        # parse date intervals
+        parsed_dates = parse_date_intervals(paid_at)
+        
+        paid_at = parsed_dates
+
+      elif type(paid_at) == str:
+        formats = ["%d/%m/%Y", "%Y-%m-%d %H:%M:%S"]
+        for fmt in formats:
+          try:
+            paid_at = datetime.strptime(paid_at, fmt).date()
+            break
+          except ValueError:
+            pass
+            # print(f"Warning: Could not parse paid_at date '{paid_at_raw}' with format {fmt}")
+            
+          if not paid_at:
+            if SHOW_WARNINGS: print(f"Warning: Could not parse paid_at date '{paid_at}' for settlement {settlement['num_comprobante']}")
+
+      settlement['fecha_pago'] = paid_at
+
       for ref in references:
         payment = {}
         payment['reference'] = ref
         payment['amount'] = row[9] if len(references) == 1 else None
         payment['not_found'] = True
         settlement['payments'].append(payment)
+
+    if is_exonerated:
+      settlement['payments'] = []
+      settlement['not_found_payments'] = ''
+
       
     settlements_list.append(settlement)
   return settlements_list
@@ -282,6 +358,21 @@ def load_payments_list(month, year):
 
   return payments_list
 
+
+def dates_are_close_by(date1, date2, days):
+  """
+    Compare two dates to see if they are close by a given number of days
+
+    Args:
+      date1 (datetime): the first date
+      date2 (datetime): the second date
+      days (int): the number of days to compare
+
+    Returns:
+      bool: True if the dates are close by the given number of days, False otherwise
+  """
+  return abs((date1 - date2).days) <= days
+
 def asigne_payments_to_settlements(payments_list, settlements_list):
   """
     I want to check settlement's payments against the payments_list
@@ -309,7 +400,7 @@ def asigne_payments_to_settlements(payments_list, settlements_list):
 
         #   continue
 
-        if str(payment_in_list['reference']).endswith(six_digit_ref) or (is_deposit and str(payment_in_list['reference']).endswith(four_digit_ref)):
+        if str(payment_in_list['reference']).endswith(six_digit_ref) or (is_deposit and str(payment_in_list['reference']).endswith(four_digit_ref)) :
           found = True
           payment_index = settlement['payments'].index(payment)
           settlement['payments'][payment_index] = payment | payment_in_list
@@ -371,6 +462,7 @@ def export_to_excel(list_of_dicts, file_name):
 
   for item in list_of_dicts:
     item['payments'] = ''
+    print(item)
     row = [item.get(header, "") for header in headers]
     sheet.append(row)
 
@@ -399,6 +491,13 @@ def main(argv):
     os.makedirs('datos/exports')
 
   export_to_excel(payments_list, f"datos/exports/{year}-{month}-payments.xlsx")
+  
+  
+  
+  for settlement in settlements_list:
+    if type(settlement['fecha_pago']) == list:
+      settlement['fecha_pago'] = '{:%d/%m/%Y} - {:%d/%m/%Y}'.format(* settlement['fecha_pago'])
+
   export_to_excel(settlements_list, f"datos/exports/{year}-{month}-settlements.xlsx")
 
 
