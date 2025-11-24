@@ -30,7 +30,7 @@ from libs.settings import SHOW_WARNINGS
 import os
 from openpyxl import load_workbook
 import json
-from datetime import datetime, timedelta
+from datetime import datetime, date, timedelta
 import sys
 
 def parse_date_intervals(data):
@@ -69,7 +69,7 @@ def parse_date_intervals(data):
       min_date = min(parsed_dates)
       max_date = max(parsed_dates)
 
-      return [min_date, max_date]
+      return [min_date.date(), max_date.date()]
     
     return None
 
@@ -85,7 +85,7 @@ def load_settlements_list():
     settlement = {}
     settlement['legal_name'] = row[0]
     settlement['rif_cedula'] = row[1]
-    settlement['num_comprobante'] = row[2]
+    settlement['num_comprobante'] = str(row[2]).strip()
     settlement['pago_por'] = row[3]
     settlement['fecha_pago'] = row[4]
     settlement['fecha'] = row[5]
@@ -134,9 +134,9 @@ def load_settlements_list():
           except ValueError:
             pass
             # print(f"Warning: Could not parse paid_at date '{paid_at_raw}' with format {fmt}")
-            
-          if not paid_at:
-            if SHOW_WARNINGS: print(f"Warning: Could not parse paid_at date '{paid_at}' for settlement {settlement['num_comprobante']}")
+      elif type(paid_at) == datetime:
+        paid_at = paid_at.date()
+          
 
       settlement['fecha_pago'] = paid_at
 
@@ -195,8 +195,12 @@ def load_9290_payments(month, year):
         if index == 1:
           continue
 
+        payment_date = row[0]
+        if type(payment_date) is datetime:
+          payment_date = payment_date.date()
+
         payment = {}
-        payment["date"] = row[0]
+        payment["date"] = payment_date
         payment["reference"] = str(row[1]).strip()
         payment["description"] = row[3]
         
@@ -256,8 +260,6 @@ def load_1892_payments(month, year):
     except AttributeError:
       amount = float(row[4] or 0)
 
-    print(row[0])
-
     date = row[0]
     if type(date) is str:
       try:
@@ -307,7 +309,7 @@ def load_biopago_payments(month, year):
 
     # print(row)
     payment = {
-      "date": row[1],
+      "date": row[1].date(),
       "reference": str(row[0]).strip(),
       "description": f"{row[7]} {row[5]}",
       "amount": float(row[4]),
@@ -371,7 +373,22 @@ def dates_are_close_by(date1, date2, days):
     Returns:
       bool: True if the dates are close by the given number of days, False otherwise
   """
+  # print(f"date1: {date1}, date2: {date2}")
   return abs((date1 - date2).days) <= days
+
+def is_date_in_range(date, time_range):
+  """
+  Check if a given date is within a given time range
+
+  Args:
+    date (datetime): the date to check
+    time_range (list): a list with two dates, the start and end of the time range
+
+  Returns:
+    bool: True if the date is within the time range, False otherwise
+  """
+  start_date, end_date = time_range
+  return start_date <= date <= end_date
 
 def asigne_payments_to_settlements(payments_list, settlements_list):
   """
@@ -384,8 +401,15 @@ def asigne_payments_to_settlements(payments_list, settlements_list):
 
   counter = 0
   for settlement in settlements_list:
+
+    if settlement['num_comprobante'] == '12064':
+      print(f"Settlement {settlement['num_comprobante']} found")
+      for payment in settlement['payments']:
+        print(payment)
+
     for payment in settlement['payments']:
       found = False
+
       for payment_in_list in payments_list:
 
         six_digit_ref = str(payment['reference'])[-6:].zfill(6)
@@ -398,9 +422,33 @@ def asigne_payments_to_settlements(payments_list, settlements_list):
         # if not has_valid_date:
         #   print(f"Warning: payment {payment_in_list['reference']} has an invalid date: {payment_in_list['date']} (settlement date: {settlement['fecha']})")
 
+
+        if settlement['num_comprobante'] == '12064' and '407696' in payment_in_list['reference']:
+          print(f"Payment {payment_in_list['reference']} found in settlement {settlement['num_comprobante']}")
+          print(f"six_digit_ref: {six_digit_ref}, four_digit_ref: {four_digit_ref}")
+
         #   continue
 
-        if str(payment_in_list['reference']).endswith(six_digit_ref) or (is_deposit and str(payment_in_list['reference']).endswith(four_digit_ref)) :
+        is_valid_date = False
+
+        if type(settlement['fecha_pago']) == list and len(settlement['fecha_pago']) == 2:
+          is_valid_date = is_date_in_range(payment_in_list['date'], settlement['fecha_pago'])
+        elif type(settlement['fecha_pago']) == date:
+          # print(f"date: {payment_in_list['date']}, reference: {payment_in_list['reference']}, bank: {payment_in_list['bank']}")
+          is_valid_date = dates_are_close_by(payment_in_list['date'], settlement['fecha_pago'], 15)
+
+
+        # if ('002259' in payment_in_list['reference'] and settlement['num_comprobante'] == '11983'):
+        #     print(f"Payment {payment_in_list['reference']} found in settlement {settlement['num_comprobante']}")
+        #     print(f"six_digit_ref: {six_digit_ref}, four_digit_ref: {four_digit_ref}")
+        #     print(f"is_valid_date: {is_valid_date}")
+        #     print(f"payment_in_list['date']: {payment_in_list['date']}")
+        #     print(f"settlement['fecha_pago']: {settlement['fecha_pago']}")
+
+        the_reference_match = (str(payment_in_list['reference']).endswith(six_digit_ref) or str(payment_in_list['reference']).endswith(four_digit_ref))
+
+        if the_reference_match and is_valid_date:
+
           found = True
           payment_index = settlement['payments'].index(payment)
           settlement['payments'][payment_index] = payment | payment_in_list
@@ -412,6 +460,11 @@ def asigne_payments_to_settlements(payments_list, settlements_list):
           payment_in_list['settlement_description'] = settlement['legal_name'] + " - " + settlement['rif_cedula'] + " - " + settlement['pago_por']
           counter = counter + 1
           break
+
+        elif the_reference_match and not is_valid_date:
+          pass
+          # print(f"Warning: payment {payment_in_list['reference']} has a valid reference match with settlement {settlement['num_comprobante']}, but the date is invalid: payment reference: {six_digit_ref or four_digit_ref}, settlement reference: {settlement['referencia']}, payment date: {payment_in_list['date']} (settlement date: {settlement['fecha_pago']}), amount: {payment_in_list['amount']}")
+        
       
     if settlement['is_exonerated']:
       settlement['is_verified'] = True
@@ -462,12 +515,19 @@ def export_to_excel(list_of_dicts, file_name):
 
   for item in list_of_dicts:
     item['payments'] = ''
-    print(item)
     row = [item.get(header, "") for header in headers]
     sheet.append(row)
 
   workbook.save(file_name)
   print(f"Data exported to {file_name}")
+
+def test_dates_are_close_by():
+  print(f"Testing dates_are_close_by:")
+  print(f"  assert dates_are_close_by(date(2020, 1, 1), date(2020, 1, 3), 2) => {dates_are_close_by(date(2020, 1, 1), date(2020, 1, 3), 2)}")
+  print(f"  assert dates_are_close_by(date(2020, 1, 3), date(2020, 1, 1), 2) => {dates_are_close_by(date(2020, 1, 3), date(2020, 1, 1), 2)}")
+  print(f"  assert not dates_are_close_by(date(2020, 1, 1), date(2020, 1, 4), 2) => {not dates_are_close_by(date(2020, 1, 1), date(2020, 1, 4), 2)}")
+  print(f"  assert not dates_are_close_by(date(2020, 1, 4), date(2020, 1, 1), 2) => {not dates_are_close_by(date(2020, 1, 4), date(2020, 1, 1), 2)}")
+  
 
 def main(argv):
   if len(argv) != 3:
