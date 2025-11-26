@@ -1,8 +1,8 @@
 import os
 import sys
 
-from libs.load_standardized_transactions import *
-from libs.load_non_standardized_transactions_venezuela import *
+from load_standardized_transactions import *
+from load_non_standardized_transactions_venezuela import *
 from load_account_statement_data import load_account_statement_data
 
 # stage 7 - Presentation

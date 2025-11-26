@@ -5,8 +5,8 @@ import os
 import openpyxl
 
 
-from libs.load_non_standardized_transactions_venezuela import load_non_standardized_transactions_venezuela
-from libs.load_standardized_transactions import load_standardized_transactions
+from load_non_standardized_transactions_venezuela import load_non_standardized_transactions_venezuela
+from load_standardized_transactions import load_standardized_transactions
 from load_account_statement_data import load_account_statement_data
 from project_types import Transaction
 
