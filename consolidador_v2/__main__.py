@@ -348,6 +348,7 @@ def load_payments_list(month, year):
   print(f"month: {month}, year: {year}")
 
   payments_list = []
+
   for given_month  in range(1, month+1):
 
     string_month = "0" + str(given_month) if len(str(given_month)) == 1 else str(given_month)
@@ -433,12 +434,12 @@ def asigne_payments_to_settlements(payments_list, settlements_list):
           is_valid_date = dates_are_close_by(payment_in_list['date'], settlement['fecha_pago'], 2)
 
 
-        # if ('407696' in payment_in_list['reference'] and settlement['num_comprobante'] == '12064'):
-        #     print(f"Payment {payment_in_list['reference']} found in settlement {settlement['num_comprobante']}")
-        #     print(f"six_digit_ref: {six_digit_ref}, four_digit_ref: {four_digit_ref}")
-        #     print(f"is_valid_date: {is_valid_date}")
-        #     print(f"payment_in_list['date']: {payment_in_list['date']}")
-        #     print(f"settlement['fecha_pago']: {settlement['fecha_pago']}")
+        if ('610333' in payment_in_list['reference'] and settlement['num_comprobante'] == '12246'):
+            print(f"Payment {payment_in_list['reference']} found in settlement {settlement['num_comprobante']}")
+            print(f"six_digit_ref: {six_digit_ref}, four_digit_ref: {four_digit_ref}")
+            print(f"is_valid_date: {is_valid_date}")
+            print(f"payment_in_list['date']: {payment_in_list['date']}")
+            print(f"settlement['fecha_pago']: {settlement['fecha_pago']}")
 
         the_reference_match = (str(payment_in_list['reference']).endswith(six_digit_ref) or str(payment_in_list['reference']).endswith(four_digit_ref)) or (settlement['banco'] == 'BDT' and str(payment_in_list['description']).endswith(six_digit_ref))
 

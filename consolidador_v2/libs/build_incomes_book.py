@@ -94,7 +94,7 @@ if __name__ == "__main__":
 
   account_statement_data = load_account_statement_data(month, year, bank_account)
 
-  transactions = load_standardized_transactions("./datos/exports/payments.xlsx")
+  transactions = load_standardized_transactions(path_to_payments)
 
   settled_payments = [p for p in transactions if p.matched_settlement_code is not None and p.settlement_date.month == month and p.settlement_date.year == year]
 

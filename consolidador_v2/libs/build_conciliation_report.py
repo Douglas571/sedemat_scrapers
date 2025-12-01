@@ -95,7 +95,7 @@ if __name__ == "__main__":
 
   account_statement_data = load_account_statement_data(month, year, bank_account)
 
-  transactions = load_standardized_transactions("./datos/exports/payments.xlsx")
+  transactions = load_standardized_transactions(path_to_payments)
 
   pending_payments = []
   settled_payments = []
