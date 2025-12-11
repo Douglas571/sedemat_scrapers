@@ -29,8 +29,12 @@ def load_standardized_transactions(path: str) -> list[Transaction]:
 
   for index, row in enumerate(sheet.iter_rows(values_only=True), start=1):
 
-    if index == 1:
+    if index == 1 or row[0] is None:
+      # skip the header 
+      # avoid the elements with 0 (date) element as none, it can have the rest of the columns none too 
       continue
+
+    print(row)
 
     date = row[0]
     if type(date) is str:
@@ -40,7 +44,7 @@ def load_standardized_transactions(path: str) -> list[Transaction]:
         print(f"Warning: invalid date format {row[0]} in file {path}, row {index}")
         continue
     else:
-      date = row[0].date()
+      date = date.date()
 
     settlement_date = None
     if row[7] is not None:
