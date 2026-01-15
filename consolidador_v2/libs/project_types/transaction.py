@@ -26,7 +26,7 @@ class Transaction(BaseModel):
 
   @field_validator('account_number', mode='before')
   def validate_account_number(cls, v):
-    allowed_account_numbers = ['1892', '9290', '3055']
+    allowed_account_numbers = ['1892', '9290', '3055', '5565']
     if v not in allowed_account_numbers:
       raise ValueError(f'account_number must be one of {allowed_account_numbers}')
     return v

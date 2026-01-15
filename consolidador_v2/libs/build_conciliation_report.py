@@ -49,7 +49,8 @@ def build_conciliation_report(transactions: list[Transaction], month: int, year:
   ws.cell(row=11, column=3).value = f"{BANKS[bank_account]['account_number']}"
   ws.cell(row=12, column=3).value = f"{BANKS[bank_account]['account_number']}"
 
-  last_day_of_month = datetime(year, month+1, 1) - timedelta(days=1)
+  print('month ', month)
+  last_day_of_month = datetime(year, month, 1) - timedelta(days=1)
   ws.cell(row=10, column=6).value = last_day_of_month.strftime("%d/%m/%Y")
 
   ws.cell(row=10, column=6).value = last_day_of_month.strftime("%d/%m/%Y")
