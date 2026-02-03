@@ -73,9 +73,9 @@ def parse_date_intervals(data):
     
     return None
 
-def load_settlements_list():
+def load_settlements_list(file_path):
   settlements_list = []
-  workbook = load_workbook('datos/settlements/cuadro_to_use.xlsx')
+  workbook = load_workbook(file_path)
   sheet = workbook.active
   for index, row in enumerate(sheet.iter_rows(values_only=True), start=1):
 
@@ -154,9 +154,6 @@ def load_settlements_list():
       
     settlements_list.append(settlement)
   return settlements_list
-
-# print(json.dumps(load_settlements_list(), indent=2, default=str))
-
 
 def load_9290_payments(month, year):
     """
@@ -377,7 +374,7 @@ def dates_are_close_by(date1, date2, days):
   # print(f"date1: {date1}, date2: {date2}")
   return abs((date1 - date2).days) <= days
 
-def is_date_in_range(date, time_range):
+def is_date_in_range(date, time_range, isBiopago=False):
   """
   Check if a given date is within a given time range
 
@@ -389,6 +386,11 @@ def is_date_in_range(date, time_range):
     bool: True if the date is within the time range, False otherwise
   """
   start_date, end_date = time_range
+
+  if (isBiopago):
+    start_date = start_date - timedelta(days=1)
+    end_date = end_date + timedelta(days=1)
+
   return start_date <= date <= end_date
 
 def asigne_payments_to_settlements(payments_list, settlements_list):
@@ -403,15 +405,17 @@ def asigne_payments_to_settlements(payments_list, settlements_list):
   counter = 0
   for settlement in settlements_list:
 
-    # if settlement['num_comprobante'] == '12064':
-    #   print(f"Settlement {settlement['num_comprobante']} found")
-    #   for payment in settlement['payments']:
-    #     print(payment)
+    if settlement['num_comprobante'] == '15':
+      print(f"Settlement {settlement['num_comprobante']} found")
+      for payment in settlement['payments']:
+        print(payment)
 
     for payment in settlement['payments']:
       found = False
 
       for payment_in_list in payments_list:
+
+        isBiopago = payment_in_list['bank'] == 'BIOPAGO'
 
         six_digit_ref = str(payment['reference'])[-6:].zfill(6)
         four_digit_ref = str(payment['reference'])[-4:].zfill(4)
@@ -428,20 +432,47 @@ def asigne_payments_to_settlements(payments_list, settlements_list):
         is_valid_date = False
 
         if type(settlement['fecha_pago']) == list and len(settlement['fecha_pago']) == 2:
-          is_valid_date = is_date_in_range(payment_in_list['date'], settlement['fecha_pago'])
+          is_valid_date = is_date_in_range(payment_in_list['date'], settlement['fecha_pago'], isBiopago)
         elif type(settlement['fecha_pago']) == date:
           # print(f"date: {payment_in_list['date']}, reference: {payment_in_list['reference']}, bank: {payment_in_list['bank']}")
           is_valid_date = dates_are_close_by(payment_in_list['date'], settlement['fecha_pago'], 2)
 
 
-        if ('610333' in payment_in_list['reference'] and settlement['num_comprobante'] == '12246'):
-            print(f"Payment {payment_in_list['reference']} found in settlement {settlement['num_comprobante']}")
-            print(f"six_digit_ref: {six_digit_ref}, four_digit_ref: {four_digit_ref}")
-            print(f"is_valid_date: {is_valid_date}")
-            print(f"payment_in_list['date']: {payment_in_list['date']}")
-            print(f"settlement['fecha_pago']: {settlement['fecha_pago']}")
+        the_reference_match = (str(payment_in_list['reference']).endswith(six_digit_ref) or (str(payment_in_list['reference']).endswith(four_digit_ref)) and is_deposit) or (settlement['banco'] == 'BDT' and str(payment_in_list['description']).endswith(six_digit_ref))
 
-        the_reference_match = (str(payment_in_list['reference']).endswith(six_digit_ref) or str(payment_in_list['reference']).endswith(four_digit_ref)) or (settlement['banco'] == 'BDT' and str(payment_in_list['description']).endswith(six_digit_ref))
+        if (payment['reference'] == '320585'): 
+          # 320585
+          # print(f'checking the payment {payment['reference']} in settlment {settlement['num_comprobante']}')
+          # print(f"  six_digit_ref: {six_digit_ref}, four_digit_ref: {four_digit_ref}")
+
+          if (payment_in_list['reference'].endswith(six_digit_ref) or payment_in_list['reference'].endswith(four_digit_ref)):
+            print(f"PRELIMINAR CHECK: {payment_in_list}")
+            print(f"  is_deposit: {is_deposit}")
+            print(f'  is_valid_date: {is_valid_date}')
+            print(f"    payment_in_list['date']: {payment_in_list['date']}")
+            print(f"    settlement['fecha_pago']: {settlement['fecha_pago']}")
+            print(f'  the_reference_match: {the_reference_match}')
+
+            print(f"  str(payment_in_list['reference']).endswith(six_digit_ref): {str(payment_in_list['reference']).endswith(six_digit_ref)}")
+            print(f"  str(payment_in_list['reference']).endswith(four_digit_ref): {str(payment_in_list['reference']).endswith(four_digit_ref)}")
+            print(f"  is_deposit: {is_deposit}")
+            print(f"  settlement['banco'] == 'BDT' and str(payment_in_list['description']).endswith(six_digit_ref): {(settlement['banco'] == 'BDT') and (str(payment_in_list['description']).endswith(six_digit_ref))}")
+
+            print('  Settlement info:')
+            print(f"    settlement['num_comprobante']: {settlement['num_comprobante']}")
+
+          if (the_reference_match and is_valid_date):
+            print(f"found the matching payment_in_list: {payment_in_list}")
+
+
+        # if ('424505' in payment_in_list['reference'] and settlement['num_comprobante'] == '15'):
+        #     print(f"Payment {payment_in_list['reference']} found in settlement {settlement['num_comprobante']}")
+        #     print(f"six_digit_ref: {six_digit_ref}, four_digit_ref: {four_digit_ref}")
+        #     print(f"is_valid_date: {is_valid_date}")
+        #     print(f"payment_in_list['date']: {payment_in_list['date']}")
+        #     print(f"settlement['fecha_pago']: {settlement['fecha_pago']}")
+        #     print(f"the_reference_match: {the_reference_match}")
+        #     print('')
 
         if the_reference_match and is_valid_date:
 
@@ -480,7 +511,7 @@ def asigne_payments_to_settlements(payments_list, settlements_list):
       total_amount = sum([payment['amount'] for payment in settlement['payments'] if not payment.get('not_found', True)])
 
       total_amount = round(total_amount, 2)
-      
+      # print(json.dumps(settlement, indent=2, default=str))
       difference = total_amount - (settlement['monto'] or 0)
       if difference != 0 and len(not_found) == 0:
         # print(f"Settlement {settlement['num_comprobante']}: amount: {settlement['monto']}, payment sum: {total_amount}, difference: {difference}")
@@ -526,15 +557,22 @@ def test_dates_are_close_by():
   
 
 def main(argv):
+
+  # SETTLEMENTS_PATH = 'datos/settlements/cuadro_to_use.xlsx'
+  SETTLEMENTS_PATH = 'datos/settlements/2026_liquidaciones.xlsx'
+
   if len(argv) != 3:
-    print("Usage: python3 consolidador_v2.py <month> <year>")
+    print("Usage: python3 __main__.py <month> <year>\n")
+    print("Example: python3 __main__.py 01 2024\n")
+    print("Example: python3 __main__.py 02 2025\n")
+    print("Example: python3 __main__.py 03 2026\n")
     return
 
   month = int(argv[1])
   year = int(argv[2])
 
   payments_list = load_payments_list(month, year)
-  settlements_list = load_settlements_list()
+  settlements_list = load_settlements_list(SETTLEMENTS_PATH)
 
   # print(json.dumps(payments_list, indent=2, default=str))
   asigne_payments_to_settlements(payments_list, settlements_list)

@@ -105,6 +105,8 @@ if __name__ == "__main__":
     date = p.date 
     settlement_date = p.settlement_date
 
+    print(p.model_dump())
+
     if p.account_number != bank_account:
       continue
 
