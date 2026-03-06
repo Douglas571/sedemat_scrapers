@@ -27,9 +27,9 @@ Settlements Map(
 import re
 from libs.settings import SHOW_WARNINGS
 
+import json
 import os
 from openpyxl import load_workbook
-import json
 from datetime import datetime, date, timedelta
 import sys
 
@@ -352,9 +352,16 @@ def load_payments_list(month, year):
 
     print(f"Loading payments for month: {given_month}, year: {year}")
 
-    payments_list.extend(load_9290_payments(string_month, year))
+    
     payments_list.extend(load_1892_payments(string_month, year))
     payments_list.extend(load_biopago_payments(string_month, year))
+    payments_list.extend(load_9290_payments(string_month, year))
+
+  
+  for payment in payments_list:
+    payment['matched_settlement'] = 'None'
+    payment['settlement_date'] = 'None'
+    payment['settlement_description'] = 'None'
 
   return payments_list
 
@@ -415,12 +422,16 @@ def asigne_payments_to_settlements(payments_list, settlements_list):
 
       for payment_in_list in payments_list:
 
+        # print(payment_in_list)
+
         isBiopago = payment_in_list['bank'] == 'BIOPAGO'
 
         six_digit_ref = str(payment['reference'])[-6:].zfill(6)
         four_digit_ref = str(payment['reference'])[-4:].zfill(4)
 
         is_deposit = 'cumarebo' == payment_in_list['description'].lower().strip()
+
+        isBdt = payment_in_list['bank'] == 'BDT'
 
         # the date is valid when payment date is greater or equal to settlement date
         # has_valid_date = payment_in_list['date'] >= settlement['fecha_pago']
@@ -437,10 +448,9 @@ def asigne_payments_to_settlements(payments_list, settlements_list):
           # print(f"date: {payment_in_list['date']}, reference: {payment_in_list['reference']}, bank: {payment_in_list['bank']}")
           is_valid_date = dates_are_close_by(payment_in_list['date'], settlement['fecha_pago'], 2)
 
+        the_reference_match = (str(payment_in_list['reference']).endswith(six_digit_ref) or (str(payment_in_list['reference']).endswith(four_digit_ref)) and is_deposit) or (str(payment_in_list['reference']).endswith(four_digit_ref) and isBdt) or (settlement['banco'] == 'BDT' and str(payment_in_list['description']).endswith(six_digit_ref))
 
-        the_reference_match = (str(payment_in_list['reference']).endswith(six_digit_ref) or (str(payment_in_list['reference']).endswith(four_digit_ref)) and is_deposit) or (settlement['banco'] == 'BDT' and str(payment_in_list['description']).endswith(six_digit_ref))
-
-        if (payment['reference'] == '320585'): 
+        if (payment['reference'] == '999999'): 
           # 320585
           # print(f'checking the payment {payment['reference']} in settlment {settlement['num_comprobante']}')
           # print(f"  six_digit_ref: {six_digit_ref}, four_digit_ref: {four_digit_ref}")
@@ -464,7 +474,6 @@ def asigne_payments_to_settlements(payments_list, settlements_list):
           if (the_reference_match and is_valid_date):
             print(f"found the matching payment_in_list: {payment_in_list}")
 
-
         # if ('424505' in payment_in_list['reference'] and settlement['num_comprobante'] == '15'):
         #     print(f"Payment {payment_in_list['reference']} found in settlement {settlement['num_comprobante']}")
         #     print(f"six_digit_ref: {six_digit_ref}, four_digit_ref: {four_digit_ref}")
@@ -474,8 +483,11 @@ def asigne_payments_to_settlements(payments_list, settlements_list):
         #     print(f"the_reference_match: {the_reference_match}")
         #     print('')
 
-        if the_reference_match and is_valid_date:
+        # i need to check why the payments are not being assinged the settlement data
 
+        found = False
+
+        if the_reference_match and is_valid_date:
           found = True
           payment_index = settlement['payments'].index(payment)
           settlement['payments'][payment_index] = payment | payment_in_list
@@ -486,13 +498,19 @@ def asigne_payments_to_settlements(payments_list, settlements_list):
           payment_in_list['settlement_date'] = settlement['fecha']
           payment_in_list['settlement_description'] = settlement['legal_name'] + " - " + settlement['rif_cedula'] + " - " + settlement['pago_por']
           counter = counter + 1
+
+          # if isBdt and the_reference_match and is_valid_date:
+          #   print(f"BDT payment {payment_in_list['reference']} found for settlement {settlement['num_comprobante']}")
+          #   print(f"  payment_in_list: {payment_in_list}")
+          
           break
 
         elif the_reference_match and not is_valid_date:
           pass
           # print(f"Warning: payment {payment_in_list['reference']} has a valid reference match with settlement {settlement['num_comprobante']}, but the date is invalid: payment reference: {six_digit_ref or four_digit_ref}, settlement reference: {settlement['referencia']}, payment date: {payment_in_list['date']} (settlement date: {settlement['fecha_pago']}), amount: {payment_in_list['amount']}")
+
         
-      
+            
     if settlement['is_exonerated']:
       settlement['is_verified'] = True
 
@@ -523,12 +541,17 @@ def asigne_payments_to_settlements(payments_list, settlements_list):
         lacking_amount = (settlement['monto'] or 0) - total_amount
         settlement['amount_difference'] = lacking_amount
 
+  # for payment in payments_list:
+  #   if payment['bank'] == 'BDT':
+  #     print(payment)
 
   print(f"Payments found: {counter}")
 
 
 def export_to_excel(list_of_dicts, file_name):
   from openpyxl import Workbook
+
+  print(f"First element: {list_of_dicts[0] if list_of_dicts else None}")
 
   workbook = Workbook()
   sheet = workbook.active
@@ -558,8 +581,8 @@ def test_dates_are_close_by():
 
 def main(argv):
 
-  # SETTLEMENTS_PATH = 'datos/settlements/cuadro_to_use.xlsx'
   SETTLEMENTS_PATH = 'datos/settlements/2026_liquidaciones.xlsx'
+  # SETTLEMENTS_PATH = 'datos/settlements/2026_liquidaciones.xlsx'
 
   if len(argv) != 3:
     print("Usage: python3 __main__.py <month> <year>\n")
@@ -583,6 +606,7 @@ def main(argv):
 
   if not os.path.exists('datos/exports'):
     os.makedirs('datos/exports')
+  
 
   export_to_excel(payments_list, f"datos/exports/{year}-{month}-payments.xlsx")
   
